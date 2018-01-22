@@ -39,6 +39,7 @@ of available states
 """
 
 import scipy as sp
+import math
 from sklearn import linear_model
 import numpy as np
 import itertools
@@ -135,19 +136,18 @@ class BoltzmannWeightsLinearEstimator:
         self.model = linear_model.LinearRegression()
         self.conc_list = list()
         self.prob_list = list()
+        self.state_values_list = list()
         self.weights = []  # this is what we're after
 
     '''
-    Use sklearn's LinearRegression to estimate Boltzmann weights. Later we will refine this result by incorporating the
-    partition function
+    Compute the values and add them to a list
         @param 
             concentrations: list of concentrations of TFs, RNAP in order of columns of mat
-            mat: matix representing all possible binding sites
             prob: probability transcript is being produced at any given moment
             active_states: vector corresponding to active states in the binding sites matrix
     '''
 
-    def linear_estimate(self, concentrations, prob):
+    def add(self, concentrations, prob):
         if self.active_states is None:
             self.active_states = build_active_states_vector(self.mat)
         # multiply the values in each row of the state matrix by the concentrations (to give the state matrix,
@@ -159,21 +159,27 @@ class BoltzmannWeightsLinearEstimator:
         s += np.ones(self.mat.shape) - self.mat
         # now take the row-wise product of the resulting product
         s = np.prod(s, axis=1)
-        # we will only use the active states, so only consider those
+        # we will only use the active states, so only consider those (TODO: decide on this)
         s = np.multiply(s, self.active_states)
         # now, we can fit it to the model with n features (investigate: take out zeros/inactive combinations?)
-        self.model.fit(s.reshape(1, -1), [prob])
-        self.weights = self.model.coef_
+        self.state_values_list.append(s.reshape(1, -1))
         # in addition, we will keep track of the concentrations and probabilities used in the estimate for later use
         self.conc_list.append(concentrations)
         self.prob_list.append(prob)
+
+    '''
+    Fit the linear model
+    '''
+    def estimate(self):
+        self.model.fit(np.array(self.state_values_list).reshape(len(self.prob_list), -1), self.prob_list)
+        self.weights = self.model.coef_
 
     '''
     Refine the model guess using the Newton-Raphson method. See http://fourier.eng.hmc.edu/e161/lectures/ica/node13.html
     '''
 
     def refine(self, iterations=10):
-        if not self.weights:
+        if not len(self.weights) > 0:
             raise ValueError('Model has not been trained!')
         for i in range(iterations):
             # first, we need to compute the Jacobian of the transcription probability function
@@ -183,6 +189,7 @@ class BoltzmannWeightsLinearEstimator:
             # to ensure that the root is zero -- though this does not change the derivative, so we are okay
             jacobian = np.array([self.jacobian_row(c, self.mat, p, self.weights, active_states=self.active_states) for
                                  c, p in zip(self.conc_list, self.prob_list)])
+            print(jacobian)
             # now, we need to generate the function value matrix. In this case, we divide the value of the active states
             # by the partition function, and then we subtract the probability value. Do this for each set of
             # concentrations and probabilities
@@ -190,10 +197,9 @@ class BoltzmannWeightsLinearEstimator:
                            partition(c, self.mat, self.weights)) - p for
                           c, p in zip(self.conc_list, self.prob_list)])
             # much of the time, the matrix will be over-specified, so we compute the pseudo-inverse using SVD methods
-            jacobian_pinv = np.pinv(jacobian)
+            jacobian_pinv = np.linalg.pinv(jacobian)
             # now, we simply perform the method:
             self.weights = self.weights - np.dot(jacobian_pinv, f)
-
 
     '''
     Returns an array representing the Jacobian row corresponding to that equation
@@ -221,11 +227,11 @@ class BoltzmannWeightsLinearEstimator:
         # now, we have the concentration expressions for each state. We now iterate over the values of the resultant
         # matrix and compute the Jacobian row
         # note: unsure about first value. We could set it to one directly, or we could use it to check our estimation.
-        # worth looking into
+        # worth looking into!!!
         row = list()
         for value in s:
             P = partition(concentrations, mat, weights_estimate)
-            A = active_states(concentrations, mat, weights_estimate, active_states=active_states)
-            d = ((P * value) - (A * value)) / (P ** 2)
+            A = active(concentrations, mat, weights_estimate, active_states=active_states)
+            d = ((P * value) - (A * value)) / math.pow(P, 2)
             row.append(d)
         return row
