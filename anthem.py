@@ -1,7 +1,5 @@
-from determine_single_promoter_genes import generate_significant_genes
+from backup.determine_single_promoter_genes import generate_significant_genes
 from data_handling import read_gnashy, read_diff_expr
-from gene_entry import GeneEntry
-
 
 '''
 run the main program

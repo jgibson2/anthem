@@ -1,8 +1,10 @@
-import unittest
-from linear_estimator import *
-import numpy as np
-import math
 import random
+import unittest
+
+import numpy as np
+
+from backup.linear_estimator import *
+from thermodynamic_states import *
 
 
 class MyTestCase(unittest.TestCase):

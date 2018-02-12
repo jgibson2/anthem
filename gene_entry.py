@@ -11,6 +11,7 @@ Class defines a gene entry containing specific information for each gene. This i
         o List of experiment identifiers
         o List of FPKM values for each experiment
     - Deleted TF (if any)
+    - Background Subtracted Hop Counts
 """
 
 
@@ -28,6 +29,7 @@ class GeneEntry:
         self.PROMEXP = kwargs.get('PROMEXP', None)
         self.DIFEXPRLVLS = kwargs.get('DIFEXPRLVLS', dict())
         self.DELTF = kwargs.get('DELTF', None)
+        self.BSHC = kwargs.get('BSHC', None)
 
     '''
     Parses GNASHY file entry in the form of list of string values:
@@ -44,6 +46,7 @@ class GeneEntry:
         self.END = int(gnashy_value_list[4])
         self.PROMEXP = float(gnashy_value_list[5])
         self.PROMCNT = float(gnashy_value_list[6])
+        self.BSHC = self.PROMCNT - self.PROMEXP
         if 'pval' in kwargs and float(gnashy_value_list[7]) > kwargs['pval']:
             return False
         return True

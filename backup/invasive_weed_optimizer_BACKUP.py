@@ -3,10 +3,8 @@ We will use our linear estimate as a basis for a genetic algorithm
 Essentially, what we'll do is randomly permute the parameters and assign fitness scores based on how well the data fit
 the model. Then, we'll select the best fitting organisms and "breed" them into a new generation with a random selection
 of other organisms. Eventually the population should coalesce to the optimum values
-
 """
 from thermodynamic_states import *
-from experiments import *
 import numpy as np
 import random
 import math
@@ -30,10 +28,8 @@ Contains values and states of a particular Organism
 '''
 class Weed:
 
-    def __init__(self, weights, mat, active_states=None):
+    def __init__(self, weights):
         self.weights = weights
-        self.mat = mat
-        self.active_states = active_states
         self.avg_error = None
         self.avg_fitness = None
         self.total_error = None
@@ -50,7 +46,7 @@ class Weed:
                 average fitness score
         '''
 
-    def fitness(self, concentrations_list, target_list, recalculate=False):
+    def fitness(self, concentrations_list, mat, target_list, active_states=None, recalculate=False):
         if len(concentrations_list) == 0 or len(target_list) == 0:
             raise ValueError('No values to calculate fitness for!')
         if self.total_error is not None and not recalculate:
@@ -58,9 +54,9 @@ class Weed:
         e_tot = 0.0
         for concentrations, target in zip(concentrations_list, target_list):
             # calculate sum of active states
-            a = active(concentrations, self.mat, self.weights, active_states=self.active_states)
+            a = active(concentrations, mat, self.weights, active_states=active_states)
             # calculate partition function value
-            p = partition(concentrations, self.mat, self.weights)
+            p = partition(concentrations, mat, self.weights)
             # calculate error
             e = abs(((a / p) / target) - 1)
             e_tot += e
@@ -83,7 +79,7 @@ class Weed:
                 average fitness score
         '''
 
-    def average_fitness(self, concentrations_list, target_list, recalculate=False):
+    def average_fitness(self, concentrations_list, mat, target_list, active_states=None, recalculate=False):
         if len(concentrations_list) == 0 or len(target_list) == 0:
             raise ValueError('No values to calculate fitness for!')
         if self.avg_error is not None and not recalculate:
@@ -91,9 +87,9 @@ class Weed:
         e_tot = 0.0
         for concentrations, target in zip(concentrations_list, target_list):
             # calculate sum of active states
-            a = active(concentrations, self.mat, self.weights, active_states=self.active_states)
+            a = active(concentrations, mat, self.weights, active_states=active_states)
             # calculate partition function value
-            p = partition(concentrations, self.mat, self.weights)
+            p = partition(concentrations, mat, self.weights)
             # calculate error
             e = abs(((a / p) / target) - 1)
             e_tot += e
@@ -111,7 +107,7 @@ Represents a Generation of organisms that can interbreed
 '''
 class InvasiveWeedOptimizer:
     def __init__(self, mat, concentrations_list=[], target_list=[], active_states=None, pop_size=100, init_size=10,
-                 initial_std_dev=10.0, final_std_dev=0.01, min_seeds=1, max_seeds=10, nmi=3):
+                 initial_std_dev=10.0, final_std_dev=0.01, min_seeds = 1, max_seeds=10, nmi=3):
         self.weeds = []
         self.concentrations_list = concentrations_list
         self.target_list = target_list

@@ -4,10 +4,10 @@ Essentially, what we'll do is randomly permute the parameters and assign fitness
 the model. Then, we'll select the best fitting organisms and "breed" them into a new generation with a random selection
 of other organisms. Eventually the population should coalesce to the optimum values
 """
-
-from linear_estimator import active, partition
 import numpy as np
 
+from backup.linear_estimator import active, partition
+from thermodynamic_states import *
 
 '''
 Contains values and states of a particular Organism
@@ -122,7 +122,7 @@ class GeneticEstimator:
         for i in range(1,iterations+1):
             # get the weights (average fitnesses) of the individuals in the population
             p = [org.fitness(self.concentrations_list, self.mat, self.target_list,
-                                     active_states=self.active_states) for org in self.organisms]
+                             active_states=self.active_states) for org in self.organisms]
             p_max = max(p)
             p = list(map(lambda x: (p_max - x) / p_max, p))
             p_sum = sum(p)
@@ -136,12 +136,12 @@ class GeneticEstimator:
             # add them to the original list and re-sort
             self.organisms.extend(new_orgs)
             self.organisms.sort(key=lambda org: org.fitness(self.concentrations_list, self.mat, self.target_list,
-                                                                    active_states=self.active_states))
-            print('Before cull: ', self.organisms[0].avg_fitness, '<', self.organisms[-1].avg_fitness)
+                                                            active_states=self.active_states))
+            #print('Before cull: ', self.organisms[0].avg_fitness, '<', self.organisms[-1].avg_fitness)
             if len(self.organisms) > self.pop_size:
                 # cull the herd if there are too many individuals
                 self.organisms = self.organisms[0:self.pop_size]
-                print('After cull: ', self.organisms[0].avg_fitness, '<', self.organisms[-1].avg_fitness)
+            #print('After cull: ', self.organisms[0].avg_fitness, '<', self.organisms[-1].avg_fitness)
 
     def estimate(self):
         return self.organisms[0].weights
